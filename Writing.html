@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grade 2 English Writing Test</title>
+<style>
+  :root{
+    --cream:#FBF7ED;
+    --navy:#1F3A5F;
+    --sky:#4E8CB8;
+    --coral:#E4693D;
+    --ink:#2B2B2B;
+    --line:#D8CFBB;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--cream);
+    color:var(--ink);
+    font-family:'Book Antiqua', Palatino, Georgia, serif;
+    font-size:12pt;
+    line-height:1.55;
+    padding-bottom:80px;
+  }
+  header{
+    background:var(--navy);
+    color:#fff;
+    padding:28px 20px 22px;
+    text-align:center;
+    border-bottom:6px solid var(--coral);
+  }
+  header h1{margin:0 0 6px; font-size:1.8rem;}
+  header p{margin:0; font-size:0.95rem; color:#DDE6EF;}
+  .wrap{max-width:820px; margin:0 auto; padding:0 18px;}
+  #gate{
+    max-width:520px; margin:60px auto; background:#fff;
+    border:1px solid var(--line); border-radius:10px;
+    padding:32px; text-align:center;
+    box-shadow:0 2px 10px rgba(31,58,95,0.08);
+  }
+  #gate h2{color:var(--navy); margin-top:0;}
+  #gate input{
+    width:100%; padding:12px 14px; font-size:1.05rem;
+    border:2px solid var(--sky); border-radius:6px;
+    font-family:inherit; margin:14px 0;
+  }
+  .btn{
+    display:inline-block; background:var(--coral); color:#fff;
+    border:none; padding:12px 26px; font-size:1.05rem;
+    border-radius:6px; cursor:pointer; font-family:inherit; font-weight:bold;
+  }
+  .btn:hover{background:#c9552e;}
+  .btn.secondary{background:var(--sky);}
+  .btn.secondary:hover{background:#3b729a;}
+  #testArea{display:none;}
+  .qcard{
+    background:#fff; border:1px solid var(--line); border-radius:8px;
+    padding:18px 20px; margin:20px 0;
+  }
+  .qnum{font-weight:bold; color:var(--coral);}
+  .marks{float:right; color:var(--navy); font-weight:bold;}
+  textarea{
+    width:100%; font-family:inherit; font-size:1rem;
+    padding:10px; border:1px solid var(--line); border-radius:5px;
+    margin-top:10px;
+  }
+  #submitBar{
+    position:fixed; bottom:0; left:0; right:0; background:#fff;
+    border-top:2px solid var(--line); padding:12px 20px; text-align:center; z-index:50;
+  }
+  #warningModal{
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5);
+    z-index:100; align-items:center; justify-content:center;
+  }
+  #warningBox{background:#fff; max-width:480px; padding:26px; border-radius:10px; text-align:center;}
+  #warningBox h3{color:var(--coral); margin-top:0;}
+  #missingList{
+    max-height:150px; overflow-y:auto; text-align:left; background:var(--cream);
+    padding:10px 14px; border-radius:6px; margin:14px 0; font-size:0.9rem;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Grade 2 English Writing Test</h1>
+  <p>5 Questions &bull; Total Marks: 50</p>
+</header>
+
+<div id="gate">
+  <h2>Enter your name to begin</h2>
+  <p>Please write your full name below. The test will not start until you enter your name.</p>
+  <input type="text" id="studentName" placeholder="Your full name">
+  <br>
+  <button class="btn" onclick="startTest()">Start Test</button>
+  <p id="gateError" style="color:var(--coral); font-weight:bold; display:none;">Please enter your name first.</p>
+</div>
+
+<div class="wrap" id="testArea">
+  <div id="questionsHost"></div>
+</div>
+
+<div id="submitBar" style="display:none;">
+  <button class="btn" onclick="trySubmit()">Submit Test</button>
+</div>
+
+<div id="warningModal">
+  <div id="warningBox">
+    <h3>Some questions are not answered</h3>
+    <p id="warningText"></p>
+    <div id="missingList"></div>
+    <button class="btn secondary" onclick="closeWarning()">Go back and answer</button>
+    <button class="btn" onclick="forceSubmit()">Submit anyway</button>
+  </div>
+</div>
+
+<script>
+const questions = [
+  {id:1, marks:10, prompt:"Write 5 sentences about your family. Use the present simple (Example: My mother cooks dinner every day.)"},
+  {id:2, marks:10, prompt:"Write 5 sentences about what you did yesterday. Use the past simple (Example: I visited my grandmother.)"},
+  {id:3, marks:10, prompt:"Write 5 sentences about your city or town. What does it look like? What can you do there?"},
+  {id:4, marks:10, prompt:"Compare two animals. Write 4 sentences using comparative or superlative words (Example: An elephant is bigger than a cat.)"},
+  {id:5, marks:10, prompt:"Write a short paragraph (4-8 sentences) about a fun day you had with a family member. Say what you did and how you felt."}
+];
+
+function renderAll(){
+  const host = document.getElementById("questionsHost");
+  let html = "";
+  questions.forEach(q => {
+    html += `<div class="qcard" id="qcard-${q.id}">
+      <span class="qnum">Q${q.id}.</span> ${q.prompt}
+      <span class="marks">${q.marks} marks</span>
+      <textarea rows="5" id="q${q.id}" placeholder="Write your answer here"></textarea>
+    </div>`;
+  });
+  host.innerHTML = html;
+}
+
+let studentName = "";
+
+function startTest(){
+  const val = document.getElementById("studentName").value.trim();
+  if(!val){
+    document.getElementById("gateError").style.display = "block";
+    return;
+  }
+  studentName = val;
+  document.getElementById("gate").style.display = "none";
+  document.getElementById("testArea").style.display = "block";
+  document.getElementById("submitBar").style.display = "block";
+  renderAll();
+  window.scrollTo(0,0);
+}
+
+function getAnswer(q){
+  const el = document.getElementById(`q${q.id}`);
+  return el ? el.value.trim() : "";
+}
+
+function getMissing(){
+  const missing = [];
+  questions.forEach(q => { if(getAnswer(q) === "") missing.push(q.id); });
+  return missing;
+}
+
+function trySubmit(){
+  const missing = getMissing();
+  if(missing.length > 0){
+    document.getElementById("warningText").textContent =
+      `You have ${missing.length} question(s) left unanswered. Please go back and finish, or submit anyway.`;
+    document.getElementById("missingList").textContent = "Unanswered: Q" + missing.join(", Q");
+    document.getElementById("warningModal").style.display = "flex";
+  } else {
+    finalizeSubmit();
+  }
+}
+
+function closeWarning(){
+  document.getElementById("warningModal").style.display = "none";
+  const missing = getMissing();
+  if(missing.length > 0){
+    document.getElementById(`qcard-${missing[0]}`).scrollIntoView({behavior:"smooth", block:"center"});
+  }
+}
+
+function forceSubmit(){
+  document.getElementById("warningModal").style.display = "none";
+  finalizeSubmit();
+}
+
+function finalizeSubmit(){
+  let out = "";
+  out += "GRADE 2 ENGLISH WRITING TEST RESULTS\n";
+  out += "Student Name: " + studentName + "\n";
+  out += "Date submitted: " + new Date().toLocaleString() + "\n";
+  out += "Total Marks Available: 50\n";
+  out += "=========================================\n\n";
+
+  questions.forEach(q => {
+    const ans = getAnswer(q);
+    out += "Q" + q.id + ". " + q.prompt + "\n";
+    out += "Marks available: " + q.marks + "\n";
+    out += "Student answer: " + (ans === "" ? "(no answer)" : ans) + "\n";
+    out += "Marks awarded: ___ / " + q.marks + "\n\n";
+  });
+
+  out += "TOTAL MARKS AWARDED: ___ / 50\n";
+
+  const blob = new Blob([out], {type:"text/plain"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const safeName = studentName.replace(/[^a-z0-9]/gi,"_");
+  a.href = url;
+  a.download = safeName + "_grade2_writing_test_results.txt";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  document.getElementById("questionsHost").innerHTML =
+    `<div class="qcard" style="text-align:center; font-size:1.1rem;">
+      <p><strong>Test submitted!</strong></p>
+      <p>A file named <strong>${safeName}_grade2_writing_test_results.txt</strong> has been downloaded to your device.</p>
+      <p>Please send this file to your teacher.</p>
+    </div>`;
+  document.getElementById("submitBar").style.display = "none";
+  window.scrollTo(0,0);
+}
+</script>
+
+</body>
+</html>
